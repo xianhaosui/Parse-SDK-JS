@@ -1716,6 +1716,49 @@ describe('ParseQuery', () => {
     expect(result).toBe(6);
   });
 
+  describe('Query.reduce with promises', () => {
+    beforeEach(() => {
+      CoreManager.setQueryController({
+        aggregate() {},
+        find() {
+          return Promise.resolve({
+            results: [
+              { objectId: 'I55', number: 1 },
+              { objectId: 'I89', number: 2 },
+              { objectId: 'I91', number: 3 },
+            ]
+          });
+        }
+      });
+    });
+
+    it('can reduce promises', async () => {
+      const q = new ParseQuery('Item');
+
+      const result = await q.reduce((accumulator, object) => {
+        return new Promise((resolve) => {
+          resolve(accumulator + object.attributes.number);
+        });
+      }, 0);
+
+      expect(result).toBe(6);
+    });
+
+    it('it doesn\'t break existing hack workaround', async () => {
+      const q = new ParseQuery('Item');
+
+      const result = await q.reduce((accumulator, object) => {
+        //eslint-disable-next-line no-async-promise-executor
+        return new Promise(async (resolve) => {
+          resolve((await accumulator) + object.attributes.number);
+        });
+      }, 0);
+
+      expect(result).toBe(6);
+    });
+
+  });
+
   it('can iterate over results with filter()', async () => {
     CoreManager.setQueryController({
       aggregate() {},
